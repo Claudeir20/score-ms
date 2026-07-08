@@ -11,8 +11,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class CreditScoreServiceTest {
 
     private final CreditDecisionPublisher publisher = Mockito.mock(CreditDecisionPublisher.class);
@@ -24,12 +22,15 @@ class CreditScoreServiceTest {
 
         UUID requestId = UUID.randomUUID();
         UUID correlationId = UUID.randomUUID();
+        String name = "Carlos";
+        String email = "carlos@email.com";
 
         CreditRequestedEvent event = new CreditRequestedEvent(
                 UUID.randomUUID(),
                 requestId,
                 "12345678900",
-                "Carlos",
+                name,
+                email,
                 new BigDecimal("6000.00"),
                 new BigDecimal("20000.00"),
                 24,
@@ -39,8 +40,8 @@ class CreditScoreServiceTest {
 
         scoreService.analyze(event);
 
-        verify(publisher).publishApproved(requestId, correlationId);
-        verify(publisher, never()).publishRejected(requestId, correlationId);
+        verify(publisher).publishApproved(requestId, name, email, correlationId);
+        verify(publisher, never()).publishRejected(requestId, name, email, correlationId);
     }
 
 
@@ -49,12 +50,15 @@ class CreditScoreServiceTest {
 
         UUID requestId = UUID.randomUUID();
         UUID correlationId = UUID.randomUUID();
+        String name = "Jose";
+        String email = "jose@email.com";
 
         CreditRequestedEvent event  = new CreditRequestedEvent(
                 UUID.randomUUID(),
                 requestId,
                 "12345678900",
-                "Jose",
+                name,
+                email,
                 new BigDecimal("2000.00"),
                 new BigDecimal("20000.00"),
                 48,
@@ -65,11 +69,7 @@ class CreditScoreServiceTest {
 
         scoreService.analyze(event);
 
-        verify(publisher).publishRejected(requestId, correlationId);
-        verify(publisher, never()).publishApproved(requestId, correlationId);
+        verify(publisher).publishRejected(requestId, name, email, correlationId);
+        verify(publisher, never()).publishApproved(requestId, name, email, correlationId);
     }
-
-
-
-
 }

@@ -16,10 +16,12 @@ public class CreditDecisionPublisher {
 
     private final RabbitTemplate rabbitTemplate;
 
-    public void publishApproved(UUID requestId, UUID correlationId) {
+    public void publishApproved(UUID requestId, String name, String email, UUID correlationId) {
         CreditApprovedEvent event = new CreditApprovedEvent(
                 UUID.randomUUID(),
                 requestId,
+                name,
+                email,
                 correlationId,
                 LocalDateTime.now()
         );
@@ -31,10 +33,12 @@ public class CreditDecisionPublisher {
         );
     }
 
-    public void publishRejected(UUID requestId, UUID correlationId) {
+    public void publishRejected(UUID requestId, String name, String email, UUID correlationId) {
         CreditRejectedEvent event = new CreditRejectedEvent(
                 UUID.randomUUID(),
                 requestId,
+                name,
+                email,
                 correlationId,
                 LocalDateTime.now()
         );

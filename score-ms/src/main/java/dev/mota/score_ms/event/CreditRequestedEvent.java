@@ -9,6 +9,7 @@ public record CreditRequestedEvent(
         UUID requestId,
         String cpf,
         String name,
+        String email,
         BigDecimal income,
         BigDecimal valueRequest,
         Integer termMonths,

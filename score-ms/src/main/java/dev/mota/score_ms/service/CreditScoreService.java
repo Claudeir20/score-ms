@@ -17,11 +17,11 @@ public class CreditScoreService {
         int score = calculateScore(event);
 
         if (score >= 60) {
-            publisher.publishApproved(event.requestId(), event.correlationId());
+            publisher.publishApproved(event.requestId(), event.name(), event.email(), event.correlationId());
             return;
         }
 
-        publisher.publishRejected(event.requestId(), event.correlationId());
+        publisher.publishRejected(event.requestId(), event.name(), event.email(), event.correlationId());
     }
 
     private int calculateScore(CreditRequestedEvent event) {
