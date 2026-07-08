@@ -6,27 +6,37 @@
 ![Maven](https://img.shields.io/badge/Maven-Wrapper-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
 ![Lombok](https://img.shields.io/badge/Lombok-Annotation%20Processor-BC4521?style=for-the-badge)
 
-Microsservico de analise de credito criado com Spring Boot e RabbitMQ. O servico faz parte de uma arquitetura orientada a eventos, consumindo solicitacoes de credito, calculando um score simples e publicando a decisao de aprovacao ou reprovacao.
+Microsserviço de análise de crédito criado com Spring Boot e RabbitMQ. O serviço faz parte de uma arquitetura orientada a eventos, consumindo solicitações de crédito, calculando um score simples e publicando a decisão de aprovação ou reprovação.
 
-## Visao geral
+## Visão geral
 
-O `score-ms` atua como consumidor e produtor dentro do fluxo de credito:
+O `score-ms` atua como consumidor e produtor dentro do fluxo de crédito:
 
 1. Consome eventos `credit.requested` publicados no exchange `credit.exchange`.
-2. Calcula uma pontuacao com base em renda, valor solicitado e prazo.
-3. Publica `credit.approved` quando o score e maior ou igual a `60`.
-4. Publica `credit.rejected` quando o score e menor que `60`.
+2. Calcula uma pontuação com base em renda, valor solicitado e prazo.
+3. Publica `credit.approved` quando o score é maior ou igual a `60`.
+4. Publica `credit.rejected` quando o score é menor que `60`.
 5. Encaminha mensagens com falha para uma Dead Letter Queue.
+
+## Decisão arquitetural
+
+Na primeira versão, o `score-ms` foi projetado como um serviço stateless, sem banco de dados próprio.
+
+Ele atua como um processador de eventos: consome `credit.requested`, calcula o score de forma determinística e publica `credit.approved` ou `credit.rejected`.
+
+A decisão de manter o serviço sem persistência reduz a complexidade inicial e deixa o estado principal da solicitação concentrado no `credits-ms`.
+
+Como o RabbitMQ trabalha com entrega at-least-once, eventos duplicados podem ocorrer. Nesta versão, duplicatas de resultado são tratadas no `credits-ms` pela máquina de estados da solicitação, que ignora eventos repetidos com o mesmo resultado e rejeita conflitos de estado.
 
 ## Arquitetura
 
 ```mermaid
 flowchart LR
-    credito["credito-ms"] -->|"credit.requested"| exchange["RabbitMQ<br/>credit.exchange"]
+    credits["credits-ms"] -->|"credit.requested"| exchange["RabbitMQ<br/>credit.exchange"]
     exchange -->|"credit.requested"| score["score-ms"]
     score -->|"credit.approved"| exchange
     score -->|"credit.rejected"| exchange
-    exchange -->|"credit.approved / credit.rejected"| notificacao["notification-ms"]
+    exchange -->|"credit.approved / credit.rejected"| notification["notification-ms"]
     score -. falhas .-> dlq["score.dlq"]
 ```
 
@@ -35,11 +45,11 @@ flowchart LR
 | Tecnologia | Uso no projeto |
 | --- | --- |
 | ![Java](https://img.shields.io/badge/Java-26-ED8B00?style=flat-square&logo=openjdk&logoColor=white) | Linguagem principal |
-| ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?style=flat-square&logo=springboot&logoColor=white) | Framework da aplicacao |
-| ![Spring AMQP](https://img.shields.io/badge/Spring%20AMQP-Mensageria-6DB33F?style=flat-square&logo=spring&logoColor=white) | Integracao com RabbitMQ |
+| ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?style=flat-square&logo=springboot&logoColor=white) | Framework da aplicação |
+| ![Spring AMQP](https://img.shields.io/badge/Spring%20AMQP-Mensageria-6DB33F?style=flat-square&logo=spring&logoColor=white) | Integração com RabbitMQ |
 | ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-Broker-FF6600?style=flat-square&logo=rabbitmq&logoColor=white) | Exchange, filas, routing keys e DLQ |
-| ![Maven](https://img.shields.io/badge/Maven-Wrapper-C71A36?style=flat-square&logo=apachemaven&logoColor=white) | Build, dependencias e testes |
-| ![Lombok](https://img.shields.io/badge/Lombok-Boilerplate-BC4521?style=flat-square) | Reducao de codigo repetitivo |
+| ![Maven](https://img.shields.io/badge/Maven-Wrapper-C71A36?style=flat-square&logo=apachemaven&logoColor=white) | Build, dependências e testes |
+| ![Lombok](https://img.shields.io/badge/Lombok-Boilerplate-BC4521?style=flat-square) | Redução de código repetitivo |
 
 ## Estrutura do projeto
 
@@ -63,9 +73,9 @@ score-ms/
     application.properties
 ```
 
-## Configuracao do RabbitMQ
+## Configuração do RabbitMQ
 
-O servico usa as seguintes configuracoes em `application.properties`:
+O serviço usa as seguintes configurações em `application.properties`:
 
 ```properties
 spring.rabbitmq.host=localhost
@@ -74,24 +84,24 @@ spring.rabbitmq.username=mota
 spring.rabbitmq.password=1234
 ```
 
-Recursos declarados pela aplicacao:
+Recursos declarados pela aplicação:
 
 | Tipo | Nome |
 | --- | --- |
 | Topic exchange | `credit.exchange` |
 | Fila de entrada | `score.credit.requested.queue` |
 | Routing key de entrada | `credit.requested` |
-| Routing key de aprovacao | `credit.approved` |
-| Routing key de reprovacao | `credit.rejected` |
+| Routing key de aprovação | `credit.approved` |
+| Routing key de reprovação | `credit.rejected` |
 | Dead letter exchange | `score.dlx` |
 | Dead letter queue | `score.dlq` |
 | Dead letter routing key | `score.dlq` |
 
 ## Regra de score
 
-A pontuacao maxima e `100` pontos:
+A pontuação máxima é `100` pontos:
 
-| Criterio | Pontos |
+| Critério | Pontos |
 | --- | ---: |
 | Renda maior ou igual a `5000.00` | 40 |
 | Valor solicitado menor ou igual a 4x a renda | 25 |
@@ -149,7 +159,7 @@ Routing key: `credit.rejected`
 
 ## Como executar
 
-Entre na pasta da aplicacao:
+Entre na pasta da aplicação:
 
 ```bash
 cd score-ms
@@ -167,7 +177,7 @@ No Windows:
 mvnw.cmd test
 ```
 
-Suba a aplicacao:
+Suba a aplicação:
 
 ```bash
 ./mvnw spring-boot:run
@@ -179,11 +189,12 @@ No Windows:
 mvnw.cmd spring-boot:run
 ```
 
-A aplicacao inicia na porta `8081`.
+A aplicação inicia na porta `8081`.
 
-## Observacoes
+## Observações
 
-- O servico depende de uma instancia do RabbitMQ rodando localmente com usuario `mota` e senha `1234`.
-- O modo de acknowledgement esta configurado como `auto`.
-- O retry do listener esta habilitado com ate 3 tentativas.
-- Mensagens que falham apos as tentativas podem ser direcionadas para a DLQ `score.dlq`.
+- O serviço é stateless e não possui banco de dados próprio nesta primeira versão.
+- O serviço depende de uma instância do RabbitMQ rodando localmente com usuário `mota` e senha `1234`.
+- O modo de acknowledgement está configurado como `auto`.
+- O retry do listener está habilitado com até 3 tentativas.
+- Mensagens que falham após as tentativas podem ser direcionadas para a DLQ `score.dlq`.
