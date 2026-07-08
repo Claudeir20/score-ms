@@ -12,11 +12,12 @@ Microsserviço de análise de crédito criado com Spring Boot e RabbitMQ. O serv
 
 O `score-ms` atua como consumidor e produtor dentro do fluxo de crédito:
 
-1. Consome eventos `credit.requested` publicados no exchange `credit.exchange`.
+1. Consome eventos `credit.requested` publicados pelo `credits-ms` no exchange `credit.exchange`.
 2. Calcula uma pontuação com base em renda, valor solicitado e prazo.
 3. Publica `credit.approved` quando o score é maior ou igual a `60`.
 4. Publica `credit.rejected` quando o score é menor que `60`.
-5. Encaminha mensagens com falha para uma Dead Letter Queue.
+5. Repassa `name` e `email` nos eventos de resultado para permitir a notificação do solicitante.
+6. Encaminha mensagens com falha para uma Dead Letter Queue.
 
 ## Decisão arquitetural
 
@@ -123,13 +124,14 @@ Routing key: `credit.requested`
 {
   "eventId": "b632c8c8-5ce2-4f4f-8f98-385c7c8f5a6f",
   "requestId": "8150262d-97b0-40f6-8f73-4c45e1f9c1c8",
-  "cpf": "12345678900",
+  "cpf": "93541134780",
   "name": "Jose Mota",
+  "email": "jose@email.com",
   "income": 6500.00,
   "valueRequest": 20000.00,
   "termMonths": 24,
   "correlationId": "c2cf0f79-71dd-4cc7-9e45-5d3bb4ea80f1",
-  "occurredAt": "2026-07-05T20:30:00"
+  "occurredAt": "2026-07-08T10:00:00"
 }
 ```
 
@@ -141,8 +143,10 @@ Routing key: `credit.approved`
 {
   "eventId": "d57bc450-71b2-4655-a735-256d6429cc29",
   "requestId": "8150262d-97b0-40f6-8f73-4c45e1f9c1c8",
+  "name": "Jose Mota",
+  "email": "jose@email.com",
   "correlationId": "c2cf0f79-71dd-4cc7-9e45-5d3bb4ea80f1",
-  "occurred": "2026-07-05T20:30:01"
+  "occurred": "2026-07-08T10:00:01"
 }
 ```
 
@@ -152,8 +156,10 @@ Routing key: `credit.rejected`
 {
   "eventId": "14efc8dc-f138-49f0-b2b7-b065444387a7",
   "requestId": "8150262d-97b0-40f6-8f73-4c45e1f9c1c8",
+  "name": "Jose Mota",
+  "email": "jose@email.com",
   "correlationId": "c2cf0f79-71dd-4cc7-9e45-5d3bb4ea80f1",
-  "occurred": "2026-07-05T20:30:01"
+  "occurred": "2026-07-08T10:00:01"
 }
 ```
 
